@@ -170,16 +170,31 @@ with tab1:
 
     # --- Étape 2 : Sélection attributs
     if st.session_state.get("eans_validated", False) and "attribute_df" in st.session_state:
-        # Génération de la liste des attributs éditables
+        # 1) Base d'attributs + normalisation
         attribute_df = st.session_state["attribute_df"].copy()
-        attribute_df["display_label"] = (
-                attribute_df["Attribute Name"] + " [" + attribute_df["Status"].fillna("") + "]"
+        attribute_df["Status"] = attribute_df["Status"].fillna("").str.strip().str.capitalize()
+        attribute_df["Channel Full Category Path"] = attribute_df["Channel Full Category Path"].fillna("")
+
+        # 2) Priorisation "catégorie spécifique" > "Cross Categories"
+        #    + à statut égal, on garde le plus restrictif: Required < Recommended < Optional
+        status_rank = {"Required": 0, "Recommended": 1, "Optional": 2, "": 3}
+        attribute_df["__is_cross"] = (attribute_df["Channel Full Category Path"] == "Cross Categories").astype(int)
+        attribute_df["__status_rank"] = attribute_df["Status"].map(status_rank).fillna(3).astype(int)
+
+        attribute_df = (
+            attribute_df
+            .sort_values(["Channel Attribute Id", "__is_cross", "__status_rank"], ascending=[True, True, True])
+            .drop_duplicates(subset=["Channel Attribute Id"], keep="first")
+            .reset_index(drop=True)
         )
+
+        # Label d'affichage
+        attribute_df["display_label"] = attribute_df["Attribute Name"] + " [" + attribute_df["Status"].fillna("") + "]"
 
         with st.container(border=True):
             st.subheader("\u2777 Choix des attributs à éditer")
 
-            # Création de  la liste des Channel Attribute Ids sélectionnés par les pills
+            # 3) Sélection via pills (statuts)
             pills_choice = st.pills(
                 "*Sélectionner les attributs selon leur statut*",
                 options=["Required", "Recommended", "Optional"],
@@ -187,55 +202,130 @@ with tab1:
                 default=st.session_state.get("pills_choice", []),
                 key="pills_choice"
             )
+            pills_norm = [p.capitalize() for p in pills_choice]
             selected_ids_pills = set(
                 attribute_df.loc[
-                    attribute_df["Status"].fillna("").str.capitalize().isin([p.capitalize() for p in pills_choice]),
+                    attribute_df["Status"].isin(pills_norm),
                     "Channel Attribute Id"
                 ]
             )
 
-            # Dans le multiselect, **propose uniquement** les display_label dont Channel Attribute Id N'EST PAS déjà dans selected_ids_pills
-            choices = (
-                attribute_df[["Attribute Name", "Channel Attribute Id", "Status", "display_label"]]
-                .drop_duplicates()
-                .reset_index(drop=True)
-            )
+            # 4) Multiselect : ne proposer que ce qui n'est PAS déjà choisi via pills
+            #    Pour éviter les collisions de labels identiques, on passe des tuples (id, label) en "option value"
             options = [
-                row["display_label"]
-                for _, row in choices.iterrows()
+                (row["Channel Attribute Id"], row["display_label"])
+                for _, row in attribute_df.iterrows()
                 if row["Channel Attribute Id"] not in selected_ids_pills
             ]
-            display_label_to_id = dict(zip(choices["display_label"], choices["Channel Attribute Id"]))
 
-            selected_labels = st.multiselect(
+            # Valeurs par défaut conservées si encore présentes
+            default_opts = [
+                opt for opt in st.session_state.get("selected_attr_opts", [])
+                if opt in options
+            ]
+
+            selected_attr_opts = st.multiselect(
                 "*Sélectionner un ou plusieurs attributs à éditer (en plus de la sélection par statut)*",
                 options=options,
-                key="selected_display_names"
+                default=default_opts,
+                key="selected_attr_opts",
+                format_func=lambda o: o[1]  # n'affiche que le label
             )
 
-            selected_ids_hand = set(display_label_to_id[label] for label in selected_labels)
+            selected_ids_hand = {opt[0] for opt in selected_attr_opts}
 
-            # Sélection finale = ids des pills + ids manuels
-            selected_ids = selected_ids_hand.union(selected_ids_pills)
+            # 5) Sélection finale = pills ∪ manuel
+            selected_ids = selected_ids_pills.union(selected_ids_hand)
 
-            # Reconstruction de selected_df
-            selected_df = attribute_df[attribute_df["Channel Attribute Id"].isin(selected_ids)].drop_duplicates(
-                subset=["Channel Attribute Id"])
+            # Reconstruction de selected_df depuis le DF priorisé/dédupliqué
+            selected_df = (
+                attribute_df[attribute_df["Channel Attribute Id"].isin(selected_ids)]
+                .drop_duplicates(subset=["Channel Attribute Id"])
+            )
             st.session_state["selected_df"] = selected_df
 
+            # Auto-masquage de l'étape 3 si plus rien n'est sélectionné
             if selected_df.empty and st.session_state.get("attrs_validated", False):
-                # Si plus aucun attribut sélectionné, on masque l'étape 3 automatiquement
                 st.session_state["attrs_validated"] = False
 
             st.caption(f"*{len(selected_ids)} attribut(s) sélectionné(s)*")
             st.dataframe(selected_df[["Attribute Name", "Status"]], hide_index=True)
 
+            # Validation pour passer à l'étape 3
             if st.button("Valider la sélection d'attributs", key="validate_attrs"):
                 if len(selected_df) > 0:
                     st.session_state["attrs_validated"] = True
                 else:
                     st.session_state["attrs_validated"] = False
                     st.warning("Merci de sélectionner au moins un attribut.")
+    
+    # if st.session_state.get("eans_validated", False) and "attribute_df" in st.session_state:
+    #     # Génération de la liste des attributs éditables
+    #     attribute_df = st.session_state["attribute_df"].copy()
+    #     attribute_df["display_label"] = (
+    #             attribute_df["Attribute Name"] + " [" + attribute_df["Status"].fillna("") + "]"
+    #     )
+
+    #     with st.container(border=True):
+    #         st.subheader("\u2777 Choix des attributs à éditer")
+
+    #         # Création de  la liste des Channel Attribute Ids sélectionnés par les pills
+    #         pills_choice = st.pills(
+    #             "*Sélectionner les attributs selon leur statut*",
+    #             options=["Required", "Recommended", "Optional"],
+    #             selection_mode="multi",
+    #             default=st.session_state.get("pills_choice", []),
+    #             key="pills_choice"
+    #         )
+    #         selected_ids_pills = set(
+    #             attribute_df.loc[
+    #                 attribute_df["Status"].fillna("").str.capitalize().isin([p.capitalize() for p in pills_choice]),
+    #                 "Channel Attribute Id"
+    #             ]
+    #         )
+
+    #         # Dans le multiselect, **propose uniquement** les display_label dont Channel Attribute Id N'EST PAS déjà dans selected_ids_pills
+    #         choices = (
+    #             attribute_df[["Attribute Name", "Channel Attribute Id", "Status", "display_label"]]
+    #             .drop_duplicates()
+    #             .reset_index(drop=True)
+    #         )
+    #         options = [
+    #             row["display_label"]
+    #             for _, row in choices.iterrows()
+    #             if row["Channel Attribute Id"] not in selected_ids_pills
+    #         ]
+    #         display_label_to_id = dict(zip(choices["display_label"], choices["Channel Attribute Id"]))
+
+    #         selected_labels = st.multiselect(
+    #             "*Sélectionner un ou plusieurs attributs à éditer (en plus de la sélection par statut)*",
+    #             options=options,
+    #             key="selected_display_names"
+    #         )
+
+    #         selected_ids_hand = set(display_label_to_id[label] for label in selected_labels)
+
+    #         # Sélection finale = ids des pills + ids manuels
+    #         selected_ids = selected_ids_hand.union(selected_ids_pills)
+
+    #         # Reconstruction de selected_df
+    #         selected_df = attribute_df[attribute_df["Channel Attribute Id"].isin(selected_ids)].drop_duplicates(
+    #             subset=["Channel Attribute Id"])
+    #         st.session_state["selected_df"] = selected_df
+
+    #         if selected_df.empty and st.session_state.get("attrs_validated", False):
+    #             # Si plus aucun attribut sélectionné, on masque l'étape 3 automatiquement
+    #             st.session_state["attrs_validated"] = False
+
+    #         st.caption(f"*{len(selected_ids)} attribut(s) sélectionné(s)*")
+    #         st.dataframe(selected_df[["Attribute Name", "Status"]], hide_index=True)
+
+    #         if st.button("Valider la sélection d'attributs", key="validate_attrs"):
+    #             if len(selected_df) > 0:
+    #                 st.session_state["attrs_validated"] = True
+    #             else:
+    #                 st.session_state["attrs_validated"] = False
+    #                 st.warning("Merci de sélectionner au moins un attribut.")
 
     # --- Étape 3 : Génération et affichage du template
     selected_df = st.session_state.get("selected_df")
@@ -321,3 +411,4 @@ with tab1:
                     data=tmpfile.read(),
                     file_name=filename
                 )
+
