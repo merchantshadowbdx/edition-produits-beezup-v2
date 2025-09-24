@@ -373,7 +373,7 @@ with tab1:
 
 # ---------- TAB2 : RÉINTÉGRER LE TEMPLATE DANS BEEZUP (baseline live + overrides conservés) ----------
 with tab2:
-    st.title("Réintégration du template dans BeezUP (baseline live)")
+    st.title("Réintégration du template dans BeezUP")
 
     # Garde-fou : paramètres obligatoires
     if not api_key or not catalog_id:
@@ -382,7 +382,7 @@ with tab2:
 
     # --- Upload du fichier template rempli ---
     with st.container(border=True):
-        st.subheader("① Import du template rempli")
+        st.subheader("\u2776 Import du template complété")
         uploaded_template = st.file_uploader(
             "Template **rempli** (Excel)", type=["xlsx"], key="upload_filled_template_live"
         )
@@ -513,7 +513,7 @@ with tab2:
     # --- Analyse + envoi ---
     if uploaded_template is not None:
         with st.container(border=True):
-            st.subheader("② Préparation et envoi des mises à jour (baseline live)")
+            st.subheader("\u2777 Préparation et envoi des mises à jour")
 
             try:
                 filled_df = pd.read_excel(uploaded_template)
@@ -586,9 +586,9 @@ with tab2:
     else:
         with st.container(border=True):
             st.info(
-                "Importe ton **template rempli** (XLSX). "
-                "L’app récupère l’état courant (overrides + mapping) pour chaque EAN, "
-                "et renvoie **tous les overrides existants** + les changements du template."
+                "Importe ton **template complété** (XLSX). "
+                "L’application récupère l’état courant pour chaque EAN, "
+                "et renvoie **tous les éditions existantes** + les changements du template."
             )
 
 # import streamlit as st
@@ -1005,5 +1005,6 @@ with tab2:
 #                     data=tmpfile.read(),
 #                     file_name=filename
 #                 )
+
 
 
