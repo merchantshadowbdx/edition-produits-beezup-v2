@@ -263,9 +263,14 @@ with tab1:
             selected_ids = selected_ids_pills.union(selected_ids_hand)
 
             # Reconstruction de selected_df depuis le DF priorisé/dédupliqué
+            # selected_df = (
+            #     attribute_df[attribute_df["Channel Attribute Id"].isin(selected_ids)]
+            #     .drop_duplicates(subset=["Channel Attribute Id"])
+            # )
             selected_df = (
                 attribute_df[attribute_df["Channel Attribute Id"].isin(selected_ids)]
-                .drop_duplicates(subset=["Channel Attribute Id"])
+                .drop_duplicates(subset=["Channel Attribute Id", "Attribute Name"])
+                .reset_index(drop=True)
             )
             st.session_state["selected_df"] = selected_df
 
@@ -1030,6 +1035,7 @@ with tab2:
 #                     data=tmpfile.read(),
 #                     file_name=filename
 #                 )
+
 
 
 
