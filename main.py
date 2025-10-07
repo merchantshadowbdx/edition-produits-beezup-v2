@@ -372,6 +372,23 @@ with tab1:
                 st.session_state["datainfo_df"] = datainfo_df
                 st.session_state["template_generated"] = True
 
+            # --- Vérifie et corrige les doublons de colonnes avant affichage ---
+            if template_df.columns.duplicated().any():
+                seen = {}
+                new_cols = []
+                for col in template_df.columns:
+                    if col not in seen:
+                        seen[col] = 1
+                        new_cols.append(col)
+                    else:
+                        seen[col] += 1
+                        new_cols.append(f"{col}_{seen[col]}")  # rend unique
+                template_df.columns = new_cols
+                st.warning(
+                    "⚠️ Des colonnes en double ont été détectées et renommées automatiquement "
+                    "(ex: 'Attribut | ID_2')."
+                )
+            
             # Affichage du template
             st.dataframe(template_df, use_container_width=True, hide_index=True)
 
@@ -1035,6 +1052,7 @@ with tab2:
 #                     data=tmpfile.read(),
 #                     file_name=filename
 #                 )
+
 
 
 
