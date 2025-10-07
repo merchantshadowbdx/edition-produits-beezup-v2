@@ -197,6 +197,9 @@ with tab1:
         attribute_df["Status"] = attribute_df["Status"].fillna("").str.strip().str.capitalize()
         attribute_df["Channel Full Category Path"] = attribute_df["Channel Full Category Path"].fillna("")
 
+        # 👉 Filtre pour exclure les attributs dont le nom contient "[REMOVED BY MKP]"
+        attribute_df = attribute_df[~attribute_df["Channel Attribute Name"].str.contains(r"\[REMOVED BY MKP\]", case=False, na=False)]
+    
         # 2) Priorisation "catégorie spécifique" > "Cross Categories"
         #    + à statut égal, on garde le plus restrictif: Required < Recommended < Optional
         status_rank = {"Required": 0, "Recommended": 1, "Optional": 2, "": 3}
@@ -1005,6 +1008,7 @@ with tab2:
 #                     data=tmpfile.read(),
 #                     file_name=filename
 #                 )
+
 
 
 
