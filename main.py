@@ -323,6 +323,28 @@ with tab1:
 
                 template_df = merged_df_[[col for col in final_cols if col in merged_df_.columns]]
 
+                # --- Nettoyage des doublons entre Cross Categories et catégorie spécifique ---
+                # Si un attribut apparaît plusieurs fois (même Channel Attribute Id),
+                # on garde la version qui n'appartient PAS à "Cross Categories"
+                if "Channel Origin Category Name" in selected_df.columns:
+                    selected_df = (
+                        selected_df.sort_values(
+                            by=["Channel Attribute Id", "Channel Origin Category Name"],
+                            key=lambda col: col.eq("Cross Categories"),  # True = CrossCat → passe après
+                            ascending=True
+                        )
+                        .drop_duplicates(subset=["Channel Attribute Id"], keep="first")
+                        .reset_index(drop=True)
+                    )
+                
+                # (optionnel) avertissement si encore des doublons
+                dupes = selected_df[selected_df.duplicated(subset=["Channel Attribute Id"], keep=False)]
+                if not dupes.empty:
+                    st.warning(
+                        f"⚠️ Certains attributs apparaissent encore en double : "
+                        f"{', '.join(dupes['Attribute Name'].unique())}"
+                    )
+                    
                 # Renommage des colonnes pour plus de clarté lors du remplissage
                 id_to_label = {
                     row["Channel Attribute Id"]: f"{row['Attribute Name']} | {row['Channel Attribute Id']}"
@@ -1008,6 +1030,7 @@ with tab2:
 #                     data=tmpfile.read(),
 #                     file_name=filename
 #                 )
+
 
 
 
