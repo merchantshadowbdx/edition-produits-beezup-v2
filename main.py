@@ -197,21 +197,46 @@ with tab1:
         attribute_df["Status"] = attribute_df["Status"].fillna("").str.strip().str.capitalize()
         attribute_df["Channel Full Category Path"] = attribute_df["Channel Full Category Path"].fillna("")
 
-        # 👉 Filtre pour exclure les attributs dont le nom contient "[REMOVED BY MKP]"
-        attribute_df = attribute_df[~attribute_df["Attribute Name"].str.contains(r"\[REMOVED BY MKP\]", case=False, na=False)]
+        # # 👉 Filtre pour exclure les attributs dont le nom contient "[REMOVED BY MKP]"
+        # attribute_df = attribute_df[~attribute_df["Attribute Name"].str.contains(r"\[REMOVED BY MKP\]", case=False, na=False)]
     
-        # 2) Priorisation "catégorie spécifique" > "Cross Categories"
-        #    + à statut égal, on garde le plus restrictif: Required < Recommended < Optional
-        status_rank = {"Required": 0, "Recommended": 1, "Optional": 2, "": 3}
-        attribute_df["__is_cross"] = (attribute_df["Channel Full Category Path"] == "Cross Categories").astype(int)
-        attribute_df["__status_rank"] = attribute_df["Status"].map(status_rank).fillna(3).astype(int)
+        # # 2) Priorisation "catégorie spécifique" > "Cross Categories"
+        # #    + à statut égal, on garde le plus restrictif: Required < Recommended < Optional
+        # status_rank = {"Required": 0, "Recommended": 1, "Optional": 2, "": 3}
+        # attribute_df["__is_cross"] = (attribute_df["Channel Full Category Path"] == "Cross Categories").astype(int)
+        # attribute_df["__status_rank"] = attribute_df["Status"].map(status_rank).fillna(3).astype(int)
 
-        attribute_df = (
-            attribute_df
-            .sort_values(["Channel Attribute Id", "__is_cross", "__status_rank"], ascending=[True, True, True])
-            .drop_duplicates(subset=["Channel Attribute Id"], keep="first")
-            .reset_index(drop=True)
-        )
+        # attribute_df = (
+        #     attribute_df
+        #     .sort_values(["Channel Attribute Id", "__is_cross", "__status_rank"], ascending=[True, True, True])
+        #     .drop_duplicates(subset=["Channel Attribute Id"], keep="first")
+        #     .reset_index(drop=True)
+        # )
+
+        # --- Nettoyage des attributs inutiles et doublons ---
+        
+        # 1️⃣ Supprimer les attributs dépréciés marqués [REMOVED BY MKP]
+        attribute_df = attribute_df[
+            ~attribute_df["Attribute Name"].str.contains(r"\[REMOVED BY MKP\]", case=False, na=False)
+        ].copy()
+        
+        # 2️⃣ Identifier les doublons sur le couple Attribute Name + Channel Attribute Id
+        if {"Attribute Name", "Channel Attribute Id"}.issubset(attribute_df.columns):
+            # Ajout d’un flag pour prioriser les attributs spécifiques à la catégorie
+            attribute_df["__is_cross"] = attribute_df["Channel Full Category Path"].eq("Cross Categories").astype(int)
+        
+            attribute_df = (
+                attribute_df.sort_values(
+                    by=["Attribute Name", "Channel Attribute Id", "__is_cross"],
+                    ascending=[True, True, True]  # Cross Categories (1) passe après la catégorie spécifique (0)
+                )
+                # Supprime les doublons, garde la version spécifique
+                .drop_duplicates(subset=["Attribute Name", "Channel Attribute Id"], keep="first")
+                .reset_index(drop=True)
+            )
+        
+            # Nettoyage du flag technique
+            attribute_df.drop(columns=["__is_cross"], inplace=True, errors="ignore")
 
         # Label d'affichage
         attribute_df["display_label"] = attribute_df["Attribute Name"] + " [" + attribute_df["Status"].fillna("") + "]"
@@ -1052,6 +1077,7 @@ with tab2:
 #                     data=tmpfile.read(),
 #                     file_name=filename
 #                 )
+
 
 
 
