@@ -667,4 +667,8 @@ with tab2:
 # ---------- TAB3 : MAPPER LES ATTRIBUTS NON MAPPES AVEC UN CHAMP PERSONNALISE VIDE ----------
 with tab3:
     st.title("Mapping des attributs non mappés")
+    store_id = st.session_state.get("store_id")
+    catalog_id = st.session_state.get("catalog_id")
+    st.write(store_id, catalog_id)
     
+
