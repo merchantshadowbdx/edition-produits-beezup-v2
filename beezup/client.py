@@ -93,3 +93,44 @@ class BeezUPClient:
     def get_attribute_value_list(self, catalog_id, attribute_id):
         """Récupère les valeurs autorisées (listes) pour un attribut donné."""
         return self.get(f"/user/channelCatalogs/{catalog_id}/attributes/{attribute_id}/mapping")
+
+    # --- Gestion du mapping et des colonnes personnalisées --- #
+
+    def get_custom_columns(self, store_id):
+        """Récupère la liste des colonnes personnalisées du catalogue vendeur."""
+        return self.get(f"/user/catalogs/{store_id}/customColumns")
+
+    def create_custom_column(self, store_id, name="Champ perso vide généré par API"):
+        """Crée une colonne personnalisée vide (renvoie son ID si succès)."""
+        import uuid
+        column_id = str(uuid.uuid4())
+        route = f"/user/catalogs/{store_id}/customColumns/{column_id}/decrypted"
+
+        body = {
+            "displayGroupName": "Personnalised Fields",
+            "blocklyExpression": (
+                "<block xmlns=\"http://www.w3.org/1999/xhtml\" type=\"beezup_start\" deletable=\"false\">"
+                "<value name=\"startValue\"><block type=\"text\"><field name=\"TEXT\"></field></block></value></block>"
+            ),
+            "expression": "\"\"",
+            "userColumnName": name,
+        }
+
+        resp = requests.put(f"{self.BASE_URL}{route}", headers=self.headers, json=body)
+        if resp.status_code == 204:
+            return column_id
+        else:
+            import logging
+            logging.error(f"[BeezUPClient] Erreur création custom column ({resp.status_code}): {resp.text}")
+            return None
+
+    def update_column_mapping(self, catalog_id, payload):
+        """Met à jour le mapping complet (columnMappings) pour le channelCatalog."""
+        route = f"/user/channelCatalogs/{catalog_id}/columnMappings"
+        resp = requests.put(f"{self.BASE_URL}{route}", headers=self.headers, json=payload)
+        if resp.status_code not in (200, 204):
+            import logging
+            logging.error(f"[BeezUPClient] Erreur mapping ({resp.status_code}): {resp.text}")
+        return resp
+
+
