@@ -695,7 +695,7 @@ with tab3:
                 custom_columns = client.get_custom_columns(store_id) or {}
                 custom_id = None
                 for col in custom_columns.get("customColumns", []):
-                    if col.get("userColumnName") == "Champ perso vide généré par API":
+                    if col.get("userColumName") == "Champ perso vide généré par API":
                         custom_id = col.get("id")
                         break
         
@@ -726,6 +726,7 @@ with tab3:
 
 
     
+
 
 
 
