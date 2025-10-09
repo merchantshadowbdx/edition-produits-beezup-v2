@@ -13,6 +13,8 @@ class BeezUPClient:
     def __init__(self, api_key):
         self.headers = {
             "Content-Type": "application/json",
+            "Accept-Encoding": "gzip, deflate, br",
+            "X-BeezUP-Decrypted-Expression": "true",
             "Ocp-Apim-Subscription-Key": api_key
         }
 
@@ -132,5 +134,6 @@ class BeezUPClient:
             import logging
             logging.error(f"[BeezUPClient] Erreur mapping ({resp.status_code}): {resp.text}")
         return resp
+
 
 
