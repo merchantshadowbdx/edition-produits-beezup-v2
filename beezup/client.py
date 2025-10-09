@@ -110,10 +110,7 @@ class BeezUPClient:
 
         body = {
             "displayGroupName": "Personnalised Fields",
-            "blocklyExpression": (
-                "<block xmlns=\"http://www.w3.org/1999/xhtml\" type=\"beezup_start\" deletable=\"false\">"
-                "<value name=\"startValue\"><block type=\"text\"><field name=\"TEXT\"></field></block></value></block>"
-            ),
+            "blocklyExpression": "<block xmlns=\"http://www.w3.org/1999/xhtml\" type=\"beezup_start\" deletable=\"false\"> <value name=\"startValue\"><block type=\"text\"><field name=\"TEXT\"></field></block></value></block>",
             "expression": "\"\"",
             "userColumnName": name,
         }
@@ -134,6 +131,7 @@ class BeezUPClient:
             import logging
             logging.error(f"[BeezUPClient] Erreur mapping ({resp.status_code}): {resp.text}")
         return resp
+
 
 
 
