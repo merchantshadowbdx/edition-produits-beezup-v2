@@ -14,20 +14,42 @@ with st.sidebar:
     store_name = st.text_input("*Nom de la boutique*", key="store_name")
     catalog_id = st.text_input("*Channel Catalog ID*", key="catalog_id")
 
+    # if st.button("🔄 Réinitialiser l'application", key="reset_app"):
+    #     api_key_val = st.session_state.get("api_key", "")
+    #     catalog_id_val = st.session_state.get("catalog_id", "")
+
+    #     # Incrémente la clé du widget text_area pour forcer un “reset” du widget
+    #     current = st.session_state.get("eans_text_key", "eans_text_0")
+    #     idx = int(current.split("_")[-1]) + 1
+
+    #     st.session_state.clear()
+    #     st.session_state["api_key"] = api_key_val
+    #     st.session_state["catalog_id"] = catalog_id_val
+    #     st.session_state["eans_text_key"] = f"eans_text_{idx}"
+    #     st.rerun()
+    
     if st.button("🔄 Réinitialiser l'application", key="reset_app"):
         api_key_val = st.session_state.get("api_key", "")
         catalog_id_val = st.session_state.get("catalog_id", "")
-
-        # Incrémente la clé du widget text_area pour forcer un “reset” du widget
-        current = st.session_state.get("eans_text_key", "eans_text_0")
-        idx = int(current.split("_")[-1]) + 1
-
+        store_name_val = st.session_state.get("store_name", "")
+    
+        # 🔹 Incrémenter les clés dynamiques pour forcer les resets des text_area
+        eans_key = st.session_state.get("eans_text_key", "eans_text_0")
+        eans_idx = int(eans_key.split("_")[-1]) + 1
+    
+        attr_key = st.session_state.get("attr_text_key", "attr_text_0")
+        attr_idx = int(attr_key.split("_")[-1]) + 1
+    
+        # 🔹 Réinitialiser le session_state en conservant les infos importantes
         st.session_state.clear()
         st.session_state["api_key"] = api_key_val
         st.session_state["catalog_id"] = catalog_id_val
-        st.session_state["eans_text_key"] = f"eans_text_{idx}"
+        st.session_state["store_name"] = store_name_val
+        st.session_state["eans_text_key"] = f"eans_text_{eans_idx}"
+        st.session_state["attr_text_key"] = f"attr_text_{attr_idx}"
+    
         st.rerun()
-
+        
 # ---------- ONGLETS ---------- #
 tab1, tab2, tab3 = st.tabs(["Générer un template", "Éditer les produits", "Mapper les attributs"])
 
@@ -680,7 +702,15 @@ with tab3:
         st.subheader("Liste des Channel Attribute Id à mapper")
         st.markdown("Colle ci-dessous la liste des **Channel Attribute Id** (un par ligne) que tu veux associer à un champ personnalisé vide.")
 
-        attr_text = st.text_area("Channel Attribute Id (un par ligne)", placeholder="Exemple :\n11250c20-b2c7-4c2b-b046-feedb4c6e6db\n30aa2fa3-4a47-4eee-b8a0-d63f5ef42199")
+        # Clé dynamique pour forcer le reset du text_area
+        if "attr_text_key" not in st.session_state:
+            st.session_state["attr_text_key"] = "attr_text_0"
+        
+        attr_text = st.text_area(
+            "Channel Attribute Id (un par ligne)",
+            placeholder="Exemple :\n11250c20-b2c7-4c2b-b046-feedb4c6e6db\n30aa2fa3-4a47-4eee-b8a0-d63f5ef42199",
+            key=st.session_state["attr_text_key"]
+        )
         attrs_to_map = [a.strip() for a in attr_text.splitlines() if a.strip()]
 
         if not attrs_to_map:
@@ -726,6 +756,7 @@ with tab3:
 
 
     
+
 
 
 
