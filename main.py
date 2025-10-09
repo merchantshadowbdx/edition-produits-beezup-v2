@@ -664,11 +664,92 @@ with tab2:
             )
 
 
-# ---------- TAB3 : MAPPER LES ATTRIBUTS NON MAPPES AVEC UN CHAMP PERSONNALISE VIDE ----------
+# ---------- TAB3 : MAPPER LES ATTRIBUTS NON MAPPÉS ----------
 with tab3:
-    st.title("Mapping des attributs non mappés")
-    store_id = st.session_state.get("store_id")
-    catalog_id = st.session_state.get("catalog_id")
-    st.write(store_id, catalog_id)
+    st.title("🧩 Mapping automatique des attributs non mappés")
+
+    # Garde-fou : paramètres essentiels
+    if not api_key or not catalog_id:
+        st.info("Renseigne la **clé API** et le **Channel Catalog ID** dans la barre latérale pour continuer.")
+        st.stop()
+
+    client = BeezUPClient(api_key)
+    store_id, channel_id = get_store_and_channel_ids(client, catalog_id)
+
+    with st.container(border=True):
+        st.subheader("① Chargement des attributs à mapper")
+
+        uploaded_datainfo = st.file_uploader(
+            "Importe l’onglet **DataInfo** du template (XLSX)", type=["xlsx"], key="upload_datainfo"
+        )
+
+        if uploaded_datainfo:
+            datainfo_df = pd.read_excel(uploaded_datainfo)
+
+            unmapped = datainfo_df[datainfo_df["Is Mapped"].str.lower().eq("no")]
+            if unmapped.empty:
+                st.success("✅ Tous les attributs sont déjà mappés.")
+                st.stop()
+
+            st.write(f"**{len(unmapped)} attribut(s) non mappé(s)** détecté(s) :")
+            st.dataframe(unmapped[["Attribute Name", "Channel Attribute Id", "Status"]], use_container_width=True)
+
+            # Bouton de confirmation
+            if st.button("Mapper automatiquement ces attributs", type="primary"):
+                with st.spinner("Création ou récupération du champ personnalisé..."):
+
+                    # 1️⃣ Vérifier ou créer le champ personnalisé vide
+                    def ensure_custom_column(store_id):
+                        """Crée ou récupère la colonne personnalisée vide."""
+                        base_url = f"https://api.beezup.com/v2/user/catalogs/{store_id}"
+                        col_name = "Champ perso vide généré par API"
+                        resp = requests.get(f"{base_url}/customColumns", headers=client.headers).json()
+                        custom_columns = resp.get("customColumns", [])
+                        for col in custom_columns:
+                            if col.get("userColumnName") == col_name:
+                                return col.get("id")
+
+                        # Sinon on crée
+                        new_id = str(uuid.uuid4())
+                        body = {
+                            "displayGroupName": "Personnalised Fields",
+                            "blocklyExpression": "<block xmlns=\"http://www.w3.org/1999/xhtml\" type=\"beezup_start\" deletable=\"false\"> <value name=\"startValue\"> <block type=\"text\"> <field name=\"TEXT\"></field> </block> </value> </block>",
+                            "expression": "\"\"",
+                            "userColumnName": col_name,
+                        }
+                        put_resp = requests.put(f"{base_url}/customColumns/{new_id}/decrypted",
+                                                headers=client.headers, json=body)
+                        if put_resp.status_code == 204:
+                            return new_id
+                        else:
+                            st.error(f"❌ Impossible de créer le champ personnalisé (code {put_resp.status_code})")
+                            st.stop()
+
+                    custom_col_id = ensure_custom_column(store_id)
+
+                with st.spinner("Préparation du nouveau mapping..."):
+                    # 2️⃣ Récupérer le mapping actuel
+                    mapping = client.get_channel_catalog_data(catalog_id) or {}
+                    existing = mapping.get("columnMappings", [])
+
+                    # 3️⃣ Ajouter les nouveaux mappages
+                    new_payload = [
+                        {"channelColumnId": row["Channel Attribute Id"], "catalogColumnId": custom_col_id}
+                        for _, row in unmapped.iterrows()
+                    ]
+
+                    # Fusionner avec l’existant
+                    payload = existing + new_payload
+
+                    # 4️⃣ Envoyer le PUT final
+                    put_url = f"https://api.beezup.com/v2/user/channelCatalogs/{catalog_id}/columnMappings"
+                    resp = requests.put(put_url, headers=client.headers, json=payload)
+
+                    if resp.status_code in (200, 204):
+                        st.success(f"✅ Mapping terminé : {len(new_payload)} attribut(s) ont été associés au champ personnalisé.")
+                    else:
+                        st.error(f"❌ Erreur API ({resp.status_code}) : {resp.text}")
+
     
+
 
