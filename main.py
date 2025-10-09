@@ -690,6 +690,15 @@ with tab3:
         st.write(f"**{len(attrs_to_map)} attribut(s)** à mapper seront associés au champ personnalisé vide.")
 
         if st.button("Mapper les attributs", type="primary"):
+        
+            # 🔹 Assure-toi d’avoir le store_id
+            if "store_id" not in st.session_state or not st.session_state["store_id"]:
+                store_id, channel_id = get_store_and_channel_ids(client, catalog_id)
+                st.session_state["store_id"] = store_id
+                st.session_state["channel_id"] = channel_id
+            else:
+                store_id = st.session_state["store_id"]
+        
             with st.spinner("Vérification / création du champ personnalisé vide..."):
                 # 1️⃣ Vérifie s’il existe déjà un champ perso vide
                 custom_columns = client.get_custom_columns(store_id) or {}
@@ -698,7 +707,7 @@ with tab3:
                     if col.get("userColumnName") == "Champ perso vide généré par API":
                         custom_id = col.get("id")
                         break
-
+        
                 # Sinon, création automatique
                 if not custom_id:
                     custom_id = client.create_custom_column(store_id)
@@ -726,6 +735,7 @@ with tab3:
 
 
     
+
 
 
 
