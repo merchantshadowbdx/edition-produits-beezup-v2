@@ -9,6 +9,7 @@ from beezup.builder import build_and_export_excel
 
 # ---------- SIDEBAR ---------- #
 with st.sidebar:
+    st.logo("halloween.png")
     st.title("Paramètres")
     api_key = st.text_input("*Clé API BeezUP*", type="password", key="api_key")
     store_name = st.text_input("*Nom de la boutique*", key="store_name")
@@ -757,6 +758,7 @@ with tab3:
 
 
     
+
 
 
 
