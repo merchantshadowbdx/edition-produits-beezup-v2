@@ -11,7 +11,7 @@ st.set_page_config(page_title="Edition produits BeezUP V2", layout="wide", page_
 
 # ---------- SIDEBAR ---------- #
 with st.sidebar:
-    st.image("Noël.png", width="content")
+    st.image("Noël.png", width=300, caption="Joyeuses fêtes")
     st.title("Paramètres")
     api_key = st.text_input("*Clé API BeezUP*", type="password", key="api_key")
     store_name = st.text_input("*Nom de la boutique*", key="store_name")
@@ -760,6 +760,7 @@ with tab3:
 
 
     
+
 
 
 
