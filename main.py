@@ -31,7 +31,7 @@ with st.sidebar:
     #     st.session_state["eans_text_key"] = f"eans_text_{idx}"
     #     st.rerun()
     
-    if st.button("🔄 Réinitialiser l'application", key="reset_app"):
+    if st.button("\u21bb Réinitialiser l'application", key="reset_app"):
         api_key_val = st.session_state.get("api_key", "")
         catalog_id_val = st.session_state.get("catalog_id", "")
         store_name_val = st.session_state.get("store_name", "")
@@ -760,6 +760,7 @@ with tab3:
 
 
     
+
 
 
 
