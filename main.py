@@ -86,7 +86,7 @@ with tab1:
 
         # Saisie des EANs
         eans = [ean.strip() for ean in eans_text.splitlines() if ean.strip()]
-        valider_eans = st.button("Valider les EANs", key="validate_eans")
+        valider_eans = st.button("\u2713 Valider les EANs", key="validate_eans")
 
         if valider_eans:
             if api_key and catalog_id and eans:
@@ -332,7 +332,7 @@ with tab1:
             st.dataframe(selected_df[["Attribute Name", "Status"]], hide_index=True)
 
             # Validation pour passer à l'étape 3
-            if st.button("Valider la sélection d'attributs", key="validate_attrs"):
+            if st.button("\u2713 Valider la sélection d'attributs", key="validate_attrs"):
                 if len(selected_df) > 0:
                     st.session_state["attrs_validated"] = True
                 else:
@@ -760,6 +760,7 @@ with tab3:
 
 
     
+
 
 
 
