@@ -17,20 +17,6 @@ with st.sidebar:
     store_name = st.text_input("*Nom de la boutique*", key="store_name")
     catalog_id = st.text_input("*Channel Catalog ID*", key="catalog_id")
 
-    # if st.button("🔄 Réinitialiser l'application", key="reset_app"):
-    #     api_key_val = st.session_state.get("api_key", "")
-    #     catalog_id_val = st.session_state.get("catalog_id", "")
-
-    #     # Incrémente la clé du widget text_area pour forcer un “reset” du widget
-    #     current = st.session_state.get("eans_text_key", "eans_text_0")
-    #     idx = int(current.split("_")[-1]) + 1
-
-    #     st.session_state.clear()
-    #     st.session_state["api_key"] = api_key_val
-    #     st.session_state["catalog_id"] = catalog_id_val
-    #     st.session_state["eans_text_key"] = f"eans_text_{idx}"
-    #     st.rerun()
-    
     if st.button("\u21bb Réinitialiser l'application", key="reset_app"):
         api_key_val = st.session_state.get("api_key", "")
         catalog_id_val = st.session_state.get("catalog_id", "")
@@ -244,24 +230,52 @@ with tab1:
         attribute_df = attribute_df[
             ~attribute_df["Attribute Name"].str.contains(r"\[REMOVED BY MKP\]", case=False, na=False)
         ].copy()
-        
-        # 2️⃣ Identifier les doublons sur le couple Attribute Name + Channel Attribute Id
+
+
+        # 2️⃣ Identifier et résoudre les doublons sur la paire (Attribute Name, Channel Attribute Id)
         if {"Attribute Name", "Channel Attribute Id"}.issubset(attribute_df.columns):
-            # Ajout d’un flag pour prioriser les attributs spécifiques à la catégorie
-            attribute_df["__is_cross"] = attribute_df["Channel Full Category Path"].eq("Cross Categories").astype(int)
+            # -- Normalisation préventive du statut (au cas où ce ne serait pas déjà fait)
+            attribute_df["Status"] = attribute_df["Status"].fillna("").astype(str).str.strip().str.capitalize()
         
+            # Priorité des statuts (plus petit = plus restrictif)
+            status_rank = {"Required": 0, "Recommended": 1, "Optional": 2, "": 3}
+            attribute_df["__status_rank"] = attribute_df["Status"].map(status_rank).fillna(3).astype(int)
+        
+            # Flag : 0 = spécifique (préféré), 1 = Cross Categories (moins prioritaire)
+            attribute_df["__is_cross"] = attribute_df["Channel Full Category Path"].fillna("").eq("Cross Categories").astype(int)
+        
+            # Tri : on veut la combinaison la plus restrictive ET spécifique en tête pour CHAQUE paire
             attribute_df = (
-                attribute_df.sort_values(
-                    by=["Attribute Name", "Channel Attribute Id", "__is_cross"],
-                    ascending=[True, True, True]  # Cross Categories (1) passe après la catégorie spécifique (0)
+                attribute_df
+                .sort_values(
+                    by=["Attribute Name", "Channel Attribute Id", "__status_rank", "__is_cross"],
+                    ascending=[True, True, True, True]
                 )
-                # Supprime les doublons, garde la version spécifique
                 .drop_duplicates(subset=["Attribute Name", "Channel Attribute Id"], keep="first")
                 .reset_index(drop=True)
             )
         
-            # Nettoyage du flag technique
-            attribute_df.drop(columns=["__is_cross"], inplace=True, errors="ignore")
+            # Nettoyage des colonnes techniques
+            attribute_df.drop(columns=["__status_rank", "__is_cross"], inplace=True, errors="ignore")
+
+        
+        # # 2️⃣ Identifier les doublons sur le couple Attribute Name + Channel Attribute Id
+        # if {"Attribute Name", "Channel Attribute Id"}.issubset(attribute_df.columns):
+        #     # Ajout d’un flag pour prioriser les attributs spécifiques à la catégorie
+        #     attribute_df["__is_cross"] = attribute_df["Channel Full Category Path"].eq("Cross Categories").astype(int)
+        
+        #     attribute_df = (
+        #         attribute_df.sort_values(
+        #             by=["Attribute Name", "Channel Attribute Id", "__is_cross"],
+        #             ascending=[True, True, True]  # Cross Categories (1) passe après la catégorie spécifique (0)
+        #         )
+        #         # Supprime les doublons, garde la version spécifique
+        #         .drop_duplicates(subset=["Attribute Name", "Channel Attribute Id"], keep="first")
+        #         .reset_index(drop=True)
+        #     )
+        
+        #     # Nettoyage du flag technique
+        #     attribute_df.drop(columns=["__is_cross"], inplace=True, errors="ignore")
 
         # Label d'affichage
         attribute_df["display_label"] = attribute_df["Attribute Name"] + " [" + attribute_df["Status"].fillna("") + "]"
@@ -760,6 +774,7 @@ with tab3:
 
 
     
+
 
 
 
