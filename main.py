@@ -7,6 +7,8 @@ from beezup.extractor import *
 from beezup.formatter import *
 from beezup.builder import build_and_export_excel
 
+st.set_page_config(page_title="Edition produits BeezUP V2", layout="wide", page_icon="🐝")
+
 # ---------- SIDEBAR ---------- #
 with st.sidebar:
     st.logo("halloween.png", size="large")
@@ -758,6 +760,7 @@ with tab3:
 
 
     
+
 
 
 
